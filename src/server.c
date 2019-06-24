@@ -59,13 +59,13 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     // IMPLEMENT ME! //
     ///////////////////
     int response_length = sprintf(response,
-        "HTTP/1.1 200 OK\n"
-		"Content-Type: text/html\n"
+        "%s\n"
+		"Content-Type: %s\n"
 		"Content-Length: %d\n"
 		"Connection: close\n"
 		"\n"
 		"%s",
-		len, body);
+		header, content_type, len, body);
     
 
     // Send it all!
@@ -224,6 +224,8 @@ int main(void)
         // listenfd is still listening for new connections.
 
         handle_http_request(newfd, cache);
+        // check to see if the send request is working
+        resp_404(newfd);
 
         close(newfd);
     }
