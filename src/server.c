@@ -153,6 +153,8 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+    char method[128];
+    char path[8192];
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -168,12 +170,25 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
 
     // Read the first two components of the first line of the request 
- 
+    sscanf(request, "%s %s", method, path);
     // If GET, handle the get endpoints
-
-    //    Check if it's /d20 and handle that special case
-    //    Otherwise serve the requested file by calling get_file()
-
+    if (strcmp(method, "GET") == 0)
+    {
+        // Check if it's /d20 and handle that special case
+        if (strcmp(path, "/d20") == 0)
+        {
+            printf("/d20 to be coded still\n");
+        } else 
+        {
+            // Otherwise serve the requested file by calling get_file()            
+            printf("get_file() to be coded still\n");
+        }
+    // if an appropriate handler can't be found give a 404 error
+    } else
+    {
+        resp_404(fd);
+    }
+    
 
     // (Stretch) If POST, handle the post request
 }
