@@ -84,6 +84,8 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
         perror("send");
     }
 
+    rv = send(fd, )
+
     return rv;
 }
 
@@ -94,13 +96,18 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
+    char number[128];
+    int c, n;
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-
+    for (c = 0; c < 1; c++)
+    {
+        n = rand() % 20 + 1;
+        sprintf(number, "Random number between 1 & 20 is: %d", n);
+    }
     // Use send_response() to send it back as text/plain data
-
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain\n", number, sizeof number);
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
@@ -186,7 +193,8 @@ void handle_http_request(int fd, struct cache *cache)
         // Check if it's /d20 and handle that special case
         if (strcmp(path, "/d20") == 0)
         {
-            printf("/d20 to be coded still\n");
+            //printf("/d20 to be coded still\n");
+            get_d20(fd);
         } else 
         {
             // Otherwise serve the requested file by calling get_file()            
