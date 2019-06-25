@@ -84,8 +84,6 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
         perror("send");
     }
 
-    rv = send(fd, )
-
     return rv;
 }
 
@@ -104,7 +102,7 @@ void get_d20(int fd)
     for (c = 0; c < 1; c++)
     {
         n = rand() % 20 + 1;
-        sprintf(number, "Random number between 1 & 20 is: %d", n);
+        sprintf(number, "Random number between 1 & 20 is: %d\n", n);
     }
     // Use send_response() to send it back as text/plain data
     send_response(fd, "HTTP/1.1 200 OK", "text/plain\n", number, sizeof number);
@@ -257,7 +255,7 @@ int main(void)
 
         handle_http_request(newfd, cache);
         // check to see if the send request is working
-        resp_404(newfd);
+        //resp_404(newfd);
 
         close(newfd);
     }
