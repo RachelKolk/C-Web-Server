@@ -102,10 +102,11 @@ void get_d20(int fd)
     for (c = 0; c < 1; c++)
     {
         n = rand() % 20 + 1;
-        sprintf(number, "Random number between 1 & 20 is: %d\n", n);
+        sprintf(number, "<<<<<<< ROLLING the D20 >>>>>>>\n \n \n ....... %d\n", n);
     }
     // Use send_response() to send it back as text/plain data
-    send_response(fd, "HTTP/1.1 200 OK", "text/plain\n", number, sizeof number);
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", number, sizeof number);
+
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
@@ -145,6 +146,25 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
+
+    // Fetch the requested file
+    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+    filedata = file_load(filepath);
+
+    if (filedata == NULL)
+    {
+        fprintf(stderr, "cannot find %s file\n", request_path);
+        exit(3);  
+    }
+
+    mime_type = mime_type_get(filepath);
+
+    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+    file_free(filedata);
 }
 
 /**
@@ -191,13 +211,10 @@ void handle_http_request(int fd, struct cache *cache)
         // Check if it's /d20 and handle that special case
         if (strcmp(path, "/d20") == 0)
         {
-            //printf("/d20 to be coded still\n");
             get_d20(fd);
         } else 
-        {
             // Otherwise serve the requested file by calling get_file()            
-            printf("get_file() to be coded still\n");
-        }
+            get_file(fd, cache, path);  
     // if an appropriate handler can't be found give a 404 error
     } else
     {
@@ -254,9 +271,7 @@ int main(void)
         // listenfd is still listening for new connections.
 
         handle_http_request(newfd, cache);
-        // check to see if the send request is working
-        //resp_404(newfd);
-
+        
         close(newfd);
     }
 
