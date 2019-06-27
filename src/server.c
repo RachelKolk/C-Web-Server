@@ -73,7 +73,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 		"Content-Type: %s\n"
 		"Content-Length: %d\n"
 		"\n"
-		"%s",
+		"%s\n",
 		header, time_storage, content_type, len, body);
     
 
@@ -152,15 +152,28 @@ void get_file(int fd, struct cache *cache, char *request_path)
 
     // Fetch the requested file
     snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
-    filedata = file_load(filepath);
-
-    if (filedata == NULL)
+    // Check to see if the filepath is in our cache
+    struct cache_entry *entry = cache_get(cache, filepath);
+    // If it's there, serve it
+    if (entry != NULL)
     {
-        fprintf(stderr, "cannot find %s file\n", request_path);
-        exit(3);  
+        send_response(fd, "HTTP/1.1 200 OK", entry->content_type, entry->content, entry->content_length);
+    } else 
+    {
+        // If it's not there, load file from disk
+        filedata = file_load(filepath);
+    
+        if (filedata == NULL)
+        {
+            fprintf(stderr, "cannot find %s file\n", request_path);
+            exit(3);  
+        }
     }
 
     mime_type = mime_type_get(filepath);
+
+    // Store it in the cache
+    cache_put(cache, filepath, mime_type, filedata->data, filedata->size);
 
     send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
 
@@ -178,6 +191,7 @@ char *find_start_of_body(char *header)
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
+    (void)header;
 }
 
 /**
