@@ -52,12 +52,30 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 {
     const int max_response_size = 262144;
     char response[max_response_size];
+    int len = strlen(body);
+    // set up date & time for the date field in the response
+    char time_storage[128];
+    struct tm *info;
+    time_t rawtime;   
+    time(&rawtime);    
+    info =localtime(&rawtime);
+    strftime(time_storage, 128, "%c", info);
 
     // Build HTTP response and store it in response
-
+    
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    int response_length = sprintf(response,
+        "%s\n"
+        "Date: %s\n"
+        "Connection: close\n"
+		"Content-Type: %s\n"
+		"Content-Length: %d\n"
+		"\n"
+		"%s\n",
+		header, time_storage, content_type, len, body);
+    
 
     // Send it all!
     int rv = send(fd, response, response_length, 0);
@@ -76,12 +94,18 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
+    char number[128];
+    int c, n;
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-
+    for (c = 0; c < 1; c++)
+    {
+        n = rand() % 20 + 1;
+        sprintf(number, "<<<<<<< ROLLING the D20 >>>>>>>\n \n \n ....... %d\n", n);
+    }
     // Use send_response() to send it back as text/plain data
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", number, sizeof number);
 
     ///////////////////
     // IMPLEMENT ME! //
@@ -122,6 +146,38 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
+
+    // Fetch the requested file
+    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+    // Check to see if the filepath is in our cache
+    struct cache_entry *entry = cache_get(cache, filepath);
+    // If it's there, serve it
+    if (entry != NULL)
+    {
+        send_response(fd, "HTTP/1.1 200 OK", entry->content_type, entry->content, entry->content_length);
+    } else 
+    {
+        // If it's not there, load file from disk
+        filedata = file_load(filepath);
+    
+        if (filedata == NULL)
+        {
+            fprintf(stderr, "cannot find %s file\n", request_path);
+            exit(3);  
+        }
+    }
+
+    mime_type = mime_type_get(filepath);
+
+    // Store it in the cache
+    cache_put(cache, filepath, mime_type, filedata->data, filedata->size);
+
+    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+    file_free(filedata);
 }
 
 /**
@@ -135,6 +191,7 @@ char *find_start_of_body(char *header)
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
+    (void)header;
 }
 
 /**
@@ -144,6 +201,8 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+    char method[128];
+    char path[8192];
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -159,12 +218,23 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
 
     // Read the first two components of the first line of the request 
- 
+    sscanf(request, "%s %s", method, path);
     // If GET, handle the get endpoints
-
-    //    Check if it's /d20 and handle that special case
-    //    Otherwise serve the requested file by calling get_file()
-
+    if (strcmp(method, "GET") == 0)
+    {
+        // Check if it's /d20 and handle that special case
+        if (strcmp(path, "/d20") == 0)
+        {
+            get_d20(fd);
+        } else 
+            // Otherwise serve the requested file by calling get_file()            
+            get_file(fd, cache, path);  
+    // if an appropriate handler can't be found give a 404 error
+    } else
+    {
+        resp_404(fd);
+    }
+    
 
     // (Stretch) If POST, handle the post request
 }
@@ -215,7 +285,7 @@ int main(void)
         // listenfd is still listening for new connections.
 
         handle_http_request(newfd, cache);
-
+        
         close(newfd);
     }
 
